@@ -30,8 +30,8 @@ function App() {
   try {
     const config = { headers: { Authorization: `Bearer ${token}` }};//attach token
       //get the student's logs
-    const logsRes = await axios.get('http://127.0.0.1:8000/api/logs/', config);//get placement options on dropdown
-    const placementsRes = await axios.get('http://127.0.0.1:8000/api/placements/', config);
+    const logsRes = await axios.get('${import.meta.env.VITE_API_URL}/api/logs/', config);//get placement options on dropdown
+    const placementsRes = await axios.get('${import.meta.env.VITE_API_URL}/api/placements/', config);
     setLogs(logsRes.data);
     setPlacements(placementsRes.data);
   } catch (err) {
@@ -44,9 +44,9 @@ function App() {
       if (!token) return; //not logged in, do nothing
       try {
         const config = { headers: {Authorization: `Bearer ${token}`}};//attach token
-        const criteriaRes = await axios.get('http://127.0.0.1:8000/api/criteria/', config);
+        const criteriaRes = await axios.get('${import.meta.env.VITE_API_URL}/api/criteria/', config);
         setCriteria(criteriaRes.data);
-        const response = await axios.get('http://127.0.0.1:8000/api/logs/', config);
+        const response = await axios.get('${import.meta.env.VITE_API_URL}/api/logs/', config);
         setSupervisorLogs(response.data);//set logs for supervisor view
       } catch(err) {
         console.error('Failed to fetch Supervisor logs.');
@@ -58,8 +58,8 @@ const fetchAdminData = async () => {
   if(!token) return;
   try{
     const config = { headers: { Authorization: `Bearer ${token}` } };
-    const usersRes = await axios.get('http://127.0.0.1:8000/api/users/', config);
-    const logsRes = await axios.get('http://127.0.0.1:8000/api/logs/', config);
+    const usersRes = await axios.get('${import.meta.env.VITE_API_URL}/api/users/', config);
+    const logsRes = await axios.get('${import.meta.env.VITE_API_URL}/api/logs/', config);
     setAdminUsers(usersRes.data);
     setAdminLogs(logsRes.data);
   }catch(err) {
@@ -79,7 +79,7 @@ const fetchAdminData = async () => {
 
   try  {
   const promises = Object.entries(scores).map(([criteriaId, score]) =>
-    axios.post ('http://127.0.0.1:8000/api/evaluations/', {
+    axios.post ('${import.meta.env.VITE_API_URL}/api/evaluations/', {
       log: logId,
       criteria: criteriaId,
       score: parseFloat(score),
@@ -99,10 +99,10 @@ const fetchAdminData = async () => {
       const config = {headers: { Authorization: `Bearer ${token}` }};
 
       if (editingLog) {//update existing log
-        await axios.patch(`http://127.0.0.1:8000/api/logs/${editingLog.id}/`, newLog, config);
+        await axios.patch(`${import.meta.env.VITE_API_URL}/api/logs/${editingLog.id}/`, newLog, config);
         toast.success('Log updated successfully! You can now resubmit.');
       } else {//create new log
-        await axios.post('http://127.0.0.1:8000/api/logs/', newLog, config);
+        await axios.post('${import.meta.env.VITE_API_URL}/api/logs/', newLog, config);
         toast.success('Log created successfully! You can now submit for review.');
       }
       setNewLog({ week_number: '', activities: '', placement: ''});
@@ -117,7 +117,7 @@ const fetchAdminData = async () => {
     const token = get_token();
     try {
       const config = {headers: {Authorization: `Bearer ${token}`}};
-      await axios.patch(`http://127.0.0.1:8000/api/logs/${logId}/`, {status: 'submitted'}, config);
+      await axios.patch(`${import.meta.env.VITE_API_URL}/api/logs/${logId}/`, {status: 'submitted'}, config);
       fetchStudentData();//refresh list to see updated status
       toast.success('Log submitted for review!');
     } catch (err) {
@@ -128,7 +128,7 @@ const fetchAdminData = async () => {
     const token = get_token();
     try{
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      await axios.patch(`http://127.0.0.1:8000/api/logs/${logId}/`, { 
+      await axios.patch(`${import.meta.env.VITE_API_URL}/api/logs/${logId}/`, { 
         status:newStatus,
         feedback: feedbackText,
       }, config);
@@ -162,7 +162,7 @@ const fetchAdminData = async () => {
     e.preventDefault(); // Stops the page from refreshing.
     setError('');//clear previous errors
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/token/', {
+      const response = await axios.post('${import.meta.env.VITE_API_URL}/api/token/', {
         username: username,
         password: password,
       });
