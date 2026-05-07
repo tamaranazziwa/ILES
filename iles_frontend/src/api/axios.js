@@ -1,14 +1,12 @@
 import axios from 'axios';
 
-// Base URL of your Django backend
-const BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
+const BASE_URL = `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`;
 
 const api = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor: attach access token to every request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
@@ -20,7 +18,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: handle token expiration
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -37,10 +34,9 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newAccess}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed – log out
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
+        window.location.href = '/';
         return Promise.reject(refreshError);
       }
     }
