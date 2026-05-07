@@ -76,10 +76,8 @@ WSGI_APPLICATION = 'iles_backend.wsgi.application'
 # Database
 # Uses dj-database-url to configure; falls back to SQLite for local dev
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
-        conn_max_age=600
-    )
+    'default': dj_database_url.parse(
+        "postgresql://iles_user:IFJWTVvpJFmV4V55JEZoD2BwtZdcFIto@dpg-d7uekehj2pic73bpsjg0-a.oregon-postgres.render.com/iles_db_ayyn")
 }
 
 # Password validation
@@ -118,11 +116,8 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
 }
 
-# CORS – allowed origins (environment variable, defaults to local Vite dev server)
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    'CORS_ALLOWED_ORIGINS',
-    'http://localhost:5173,http://127.0.0.1:5173'
-).split(',')
+# CORS – allow all origins for testing
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Email backend (console for development; replace with SMTP in production)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
