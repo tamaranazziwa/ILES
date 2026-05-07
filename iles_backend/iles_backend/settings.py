@@ -17,6 +17,13 @@ DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
+# Render auto-injects RENDER_EXTERNAL_HOSTNAME — add it so ALLOWED_HOSTS doesn't need manual config
+_render_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if _render_hostname:
+    ALLOWED_HOSTS.append(_render_hostname)
+
+CSRF_TRUSTED_ORIGINS = [f'https://{_render_hostname}'] if _render_hostname else []
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -119,6 +126,16 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 
 # Email backend (console for development; replace with SMTP in production)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# HTTPS security — only active when DEBUG=False (i.e., production)
+# Render terminates SSL at the load balancer and forwards X-Forwarded-Proto
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
