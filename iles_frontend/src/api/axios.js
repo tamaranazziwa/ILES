@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const BASE_URL = `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`;
+const _apiRoot = import.meta.env.VITE_API_URL ?? '';
+if (!_apiRoot) {
+  console.error('[ILES] VITE_API_URL is not set — API calls will fail. Check Render environment variables.');
+}
+const BASE_URL = `${_apiRoot.replace(/\/$/, '')}/api`;
 
 const api = axios.create({
   baseURL: BASE_URL,
