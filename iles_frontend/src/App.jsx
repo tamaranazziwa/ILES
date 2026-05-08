@@ -2,6 +2,64 @@ import { useState, useEffect } from 'react';
 import api from './api/axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import './App.css';
+
+const parseJwt = (token) => {
+  let base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  base64 += '='.repeat((4 - (base64.length % 4)) % 4);
+  return JSON.parse(atob(base64));
+};
+
+const ROLE_LABELS = {
+  student: 'Student',
+  workplace_supervisor: 'Workplace Supervisor',
+  academic_supervisor: 'Academic Supervisor',
+  admin: 'Administrator',
+};
+
+const STATUS_LABELS = {
+  draft: 'Draft',
+  submitted: 'Submitted',
+  reviewed: 'Reviewed',
+  approved: 'Approved',
+};
+
+function StatusBadge({ status }) {
+  return (
+    <span className={`badge badge--${status}`}>
+      {STATUS_LABELS[status] ?? status}
+    </span>
+  );
+}
+
+function StatCard({ label, value, accent }) {
+  return (
+    <div className={`stat-card stat-card--${accent}`}>
+      <p className="stat-card__value">{value}</p>
+      <p className="stat-card__label">{label}</p>
+    </div>
+  );
+}
+
+function NavBar({ user, onLogout }) {
+  return (
+    <header className="navbar">
+      <div className="navbar__brand">
+        <span className="navbar__logo">ILES</span>
+        <span className="navbar__name">Internship Logbook &amp; Evaluation System</span>
+      </div>
+      <div className="navbar__actions">
+        <span className="navbar__username">{user.username}</span>
+        <span className={`role-pill role-pill--${user.role}`}>
+          {ROLE_LABELS[user.role] ?? user.role}
+        </span>
+        <button className="btn btn--ghost btn--sm" onClick={onLogout}>
+          Sign out
+        </button>
+      </div>
+    </header>
+  );
+}
 
 function App() {
   const [username, setUsername] = useState('');
@@ -59,7 +117,7 @@ function App() {
 
   const saveEvaluations = async (logId) => {
     const scores = {};
-    criteria.forEach(c => {
+    criteria.forEach((c) => {
       const key = `score_${logId}_${c.id}`;
       if (feedback[key]) scores[c.id] = feedback[key];
     });
@@ -86,10 +144,10 @@ function App() {
     try {
       if (editingLog) {
         await api.patch(`/logs/${editingLog.id}/`, newLog);
-        toast.success('Log updated successfully! You can now submit for review.');
+        toast.success('Log updated! You can now submit for review.');
       } else {
         await api.post('/logs/', newLog);
-        toast.success('Log created successfully! You can now submit for review.');
+        toast.success('Log created! You can now submit for review.');
       }
       setNewLog({ week_number: '', activities: '', placement: '' });
       setEditingLog(null);
@@ -114,7 +172,11 @@ function App() {
       await api.patch(`/logs/${logId}/`, { status: newStatus, feedback: feedbackText });
       fetchSupervisorLogs();
       toast.success(
-        `Log ${newStatus === 'approved' ? 'approved' : newStatus === 'draft' ? 'returned for revision' : 'updated'}!`
+        newStatus === 'approved'
+          ? 'Log approved!'
+          : newStatus === 'draft'
+          ? 'Changes requested — log returned to student.'
+          : 'Log updated!'
       );
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Error updating log.');
@@ -132,11 +194,12 @@ function App() {
     const token = localStorage.getItem('access_token');
     if (!token) return;
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const payload = parseJwt(token);
       const userData = { username: payload.username, role: payload.role };
       setUser(userData);
       if (payload.role === 'student') fetchStudentData();
-      else if (payload.role === 'workplace_supervisor' || payload.role === 'academic_supervisor') fetchSupervisorLogs();
+      else if (payload.role === 'workplace_supervisor' || payload.role === 'academic_supervisor')
+        fetchSupervisorLogs();
       else if (payload.role === 'admin') fetchAdminData();
     } catch {
       localStorage.removeItem('access_token');
@@ -147,298 +210,551 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    let response;
     try {
-      const response = await api.post('/token/', { username, password });
-      const { access, refresh } = response.data;
-      localStorage.setItem('access_token', access);
-      localStorage.setItem('refresh_token', refresh);
-      const payload = JSON.parse(atob(access.split('.')[1]));
-      const userData = { username: payload.username, role: payload.role };
-      setUser(userData);
-      if (payload.role === 'student') fetchStudentData();
-      else if (payload.role === 'workplace_supervisor' || payload.role === 'academic_supervisor') fetchSupervisorLogs();
-      else if (payload.role === 'admin') fetchAdminData();
+      response = await api.post('/token/', { username, password });
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid username or password.');
+      return;
     }
+    const { access, refresh } = response.data;
+    localStorage.setItem('access_token', access);
+    localStorage.setItem('refresh_token', refresh);
+    const payload = parseJwt(access);
+    const userData = { username: payload.username, role: payload.role };
+    setUser(userData);
+    if (payload.role === 'student') fetchStudentData();
+    else if (payload.role === 'workplace_supervisor' || payload.role === 'academic_supervisor')
+      fetchSupervisorLogs();
+    else if (payload.role === 'admin') fetchAdminData();
   };
 
-  if (user) {
-    if (user.role === 'student') {
-      return (
-        <div style={{ padding: '20px' }}>
-          <ToastContainer />
-          <h1>Student Dashboard</h1>
-          <p>Welcome, {user.username}!</p>
-          <button onClick={() => logout(() => { setLogs([]); setPlacements([]); })}>Logout</button>
+  /* ── Login ─────────────────────────────────────────────────────────────── */
+  if (!user) {
+    return (
+      <div className="login-page">
+        <ToastContainer />
+        <div className="login-card">
+          <div className="login-card__logo">ILES</div>
+          <h1 className="login-card__title">Welcome back</h1>
+          <p className="login-card__subtitle">Sign in to your internship logbook</p>
 
-          <h2>{editingLog ? 'Edit Log' : 'Create New Weekly Log'}</h2>
-          <form onSubmit={handleCreateLog}>
-            <div>
+          {error && (
+            <div className="alert alert--danger">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0, marginTop: 1 }}>
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+              </svg>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="field">
+              <label className="field__label">Username</label>
               <input
-                type="number"
-                placeholder="Week No."
-                value={newLog.week_number}
-                onChange={(e) => setNewLog({ ...newLog, week_number: e.target.value })}
+                type="text"
+                className="field__input"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
+                autoComplete="username"
               />
             </div>
-            <br />
-            <div>
-              <textarea
-                placeholder="Activities this week"
-                value={newLog.activities}
-                onChange={(e) => setNewLog({ ...newLog, activities: e.target.value })}
+            <div className="field">
+              <label className="field__label">Password</label>
+              <input
+                type="password"
+                className="field__input"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
               />
             </div>
-            <div>
-              <select
-                value={newLog.placement}
-                onChange={(e) => setNewLog({ ...newLog, placement: e.target.value })}
-                required
-              >
-                <option value="">Select Placement</option>
-                {placements.map((p) => (
-                  <option key={p.id} value={p.id}>{p.company_name}</option>
-                ))}
-              </select>
-            </div>
-            <br />
-            <button type="submit">{editingLog ? 'Update Log' : 'Create Log'}</button>
-            {editingLog && (
-              <button
-                type="button"
-                onClick={() => { setEditingLog(null); setNewLog({ week_number: '', activities: '', placement: '' }); }}
-                style={{ marginLeft: '10px' }}
-              >
-                Cancel
-              </button>
-            )}
+            <button type="submit" className="btn btn--primary btn--full" style={{ marginTop: 8 }}>
+              Sign In
+            </button>
           </form>
-
-          <h2>My Weekly Logs</h2>
-          {logs.length === 0 ? (
-            <p>No logs submitted yet.</p>
-          ) : (
-            <ul>
-              {logs.map((log) => (
-                <li key={log.id}>
-                  Week {log.week_number}: {log.activities} - <strong>{log.status}</strong>
-                  {log.total_score != null && <span> | Score: {log.total_score}</span>}
-                  {log.status === 'draft' && (
-                    <div>
-                      <button
-                        onClick={() => {
-                          setEditingLog(log);
-                          setNewLog({
-                            week_number: log.week_number,
-                            activities: log.activities,
-                            placement: log.placement?.id || log.placement,
-                          });
-                        }}
-                        style={{ marginLeft: '10px' }}
-                      >
-                        Edit
-                      </button>
-                      <button onClick={() => handleSubmitLog(log.id)} style={{ marginLeft: '10px' }}>
-                        Submit for Review
-                      </button>
-                    </div>
-                  )}
-                  {log.feedback && <p><em>Feedback: {log.feedback}</em></p>}
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
-      );
-    }
-
-    if (user.role === 'workplace_supervisor' || user.role === 'academic_supervisor') {
-      const pendingLogs = supervisorLogs.filter(log => log.status === 'submitted');
-      const reviewedLogs = supervisorLogs.filter(log => log.status === 'reviewed');
-
-      return (
-        <div style={{ padding: '20px' }}>
-          <ToastContainer />
-          <h1>Supervisor Dashboard</h1>
-          <p>Welcome, {user.username} ({user.role})!</p>
-          <button onClick={() => logout(() => setSupervisorLogs([]))}>Logout</button>
-
-          {supervisorLogs.length > 0 && (
-            <div style={{ background: 'lightblue', padding: '15px', borderRadius: '8px', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
-              <div><strong>Total Logs:</strong> {supervisorLogs.length}</div>
-              <div><strong>Draft:</strong> {supervisorLogs.filter(l => l.status === 'draft').length}</div>
-              <div><strong>Submitted:</strong> {supervisorLogs.filter(l => l.status === 'submitted').length}</div>
-              <div><strong>Reviewed:</strong> {supervisorLogs.filter(l => l.status === 'reviewed').length}</div>
-              <div><strong>Approved:</strong> {supervisorLogs.filter(l => l.status === 'approved').length}</div>
-              <div><strong>Average Score:</strong> {(() => {
-                const evaluated = supervisorLogs.filter(l => l.total_score != null);
-                if (evaluated.length === 0) return 'N/A';
-                return (evaluated.reduce((sum, l) => sum + l.total_score, 0) / evaluated.length).toFixed(2);
-              })()}</div>
-            </div>
-          )}
-
-          <h2>Pending Reviews ({pendingLogs.length})</h2>
-          {pendingLogs.length === 0 ? (
-            <p>No logs to review.</p>
-          ) : (
-            <ul>
-              {pendingLogs.map((log) => (
-                <li key={log.id}>
-                  Week {log.week_number}: {log.activities}
-                  <button onClick={() => handleSupervisorAction(log.id, 'reviewed', '')} style={{ marginLeft: '10px' }}>
-                    Mark as Reviewed
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <h2>Reviewed Logs ({reviewedLogs.length})</h2>
-          {reviewedLogs.length === 0 ? (
-            <p>No logs reviewed yet.</p>
-          ) : (
-            <ul>
-              {reviewedLogs.map(log => (
-                <li key={log.id}>
-                  Week {log.week_number}: {log.activities} - status: <strong>{log.status}</strong>
-                  {log.total_score != null && <span> | Score: {log.total_score}</span>}
-                  {criteria.map(c => (
-                    <div key={c.id} style={{ marginTop: '4px' }}>
-                      <label>{c.name} ({(c.weight * 100).toFixed(0)}%): </label>
-                      <input
-                        type="number"
-                        placeholder="0-100"
-                        style={{ width: '60px', marginLeft: '5px' }}
-                        onChange={(e) => setFeedback(prev => ({
-                          ...prev,
-                          [`score_${log.id}_${c.id}`]: e.target.value,
-                        }))}
-                      />
-                    </div>
-                  ))}
-                  <button onClick={() => saveEvaluations(log.id)} style={{ marginTop: '5px' }}>
-                    Save Evaluations
-                  </button>
-                  <div style={{ marginTop: '8px' }}>
-                    <textarea
-                      placeholder="Feedback (optional for approved, required for request changes)"
-                      value={feedback[log.id] || ''}
-                      onChange={(e) => setFeedback({ ...feedback, [log.id]: e.target.value })}
-                      rows="2"
-                      style={{ width: '100%', marginTop: '5px' }}
-                    />
-                    <button
-                      onClick={() => handleSupervisorAction(log.id, 'approved', feedback[log.id] || '')}
-                      style={{ marginTop: '5px', marginRight: '5px' }}
-                    >
-                      Approve
-                    </button>
-                    <button onClick={() => handleSupervisorAction(log.id, 'draft', feedback[log.id] || '')}>
-                      Request Changes
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <h2>All Logs</h2>
-          <ul>
-            {supervisorLogs.map(log => (
-              <li key={log.id}>
-                Week {log.week_number}: {log.activities} - <strong>{log.status}</strong>
-                {log.total_score != null && <span> | Score: {log.total_score}</span>}
-                {log.feedback && <p><em>Feedback: {log.feedback}</em></p>}
-              </li>
-            ))}
-          </ul>
-        </div>
-      );
-    }
-
-    if (user.role === 'admin') {
-      return (
-        <div style={{ padding: '20px' }}>
-          <ToastContainer />
-          <h1>Administrator Dashboard</h1>
-          <p>Welcome, {user.username}!</p>
-          <button onClick={() => logout(() => { setAdminUsers([]); setAdminLogs([]); })}>Logout</button>
-
-          <h2>All Users</h2>
-          <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
-            <thead>
-              <tr><th>ID</th><th>Username</th><th>Role</th><th>Email</th></tr>
-            </thead>
-            <tbody>
-              {adminUsers.map(u => (
-                <tr key={u.id}>
-                  <td>{u.id}</td>
-                  <td>{u.username}</td>
-                  <td>{u.role}</td>
-                  <td>{u.email}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <h2 style={{ marginTop: '30px' }}>All Logs</h2>
-          {adminLogs.length === 0 ? (
-            <p>No logs available.</p>
-          ) : (
-            <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
-              <thead>
-                <tr><th>ID</th><th>Student</th><th>Week</th><th>Activities</th><th>Status</th><th>Total Score</th><th>Feedback</th></tr>
-              </thead>
-              <tbody>
-                {adminLogs.map(log => (
-                  <tr key={log.id}>
-                    <td>{log.id}</td>
-                    <td>{log.student}</td>
-                    <td>{log.week_number}</td>
-                    <td>{log.activities}</td>
-                    <td>{log.status}</td>
-                    <td>{log.total_score != null ? log.total_score : '-'}</td>
-                    <td>{log.feedback || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      );
-    }
+        <p className="login-page__footer">Internship Logbook &amp; Evaluation System</p>
+      </div>
+    );
   }
 
+  /* ── Student ───────────────────────────────────────────────────────────── */
+  if (user.role === 'student') {
+    return (
+      <div className="app-layout">
+        <ToastContainer />
+        <NavBar user={user} onLogout={() => logout(() => { setLogs([]); setPlacements([]); })} />
+
+        <main className="page-content">
+          <div className="page-header">
+            <h1 className="page-title">My Logbook</h1>
+            <p className="page-subtitle">Track and submit your weekly internship activities</p>
+          </div>
+
+          <div className="stats-row">
+            <StatCard label="Total Logs" value={logs.length} accent="primary" />
+            <StatCard label="Draft" value={logs.filter((l) => l.status === 'draft').length} accent="neutral" />
+            <StatCard label="Submitted" value={logs.filter((l) => l.status === 'submitted').length} accent="warning" />
+            <StatCard label="Approved" value={logs.filter((l) => l.status === 'approved').length} accent="success" />
+          </div>
+
+          <div className="two-col">
+            {/* ── Log form ── */}
+            <div className="card">
+              <div className="card__header">
+                <h2 className="card__title">{editingLog ? 'Edit Log' : 'New Weekly Log'}</h2>
+              </div>
+              <div className="card__body">
+                <form onSubmit={handleCreateLog}>
+                  <div className="field">
+                    <label className="field__label">Week Number</label>
+                    <input
+                      type="number"
+                      className="field__input"
+                      placeholder="e.g. 1"
+                      value={newLog.week_number}
+                      onChange={(e) => setNewLog({ ...newLog, week_number: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="field">
+                    <label className="field__label">Placement</label>
+                    <select
+                      className="field__input"
+                      value={newLog.placement}
+                      onChange={(e) => setNewLog({ ...newLog, placement: e.target.value })}
+                      required
+                    >
+                      <option value="">Select a placement…</option>
+                      {placements.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.company_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label className="field__label">Activities</label>
+                    <textarea
+                      className="field__input field__input--textarea"
+                      placeholder="Describe your activities this week…"
+                      value={newLog.activities}
+                      onChange={(e) => setNewLog({ ...newLog, activities: e.target.value })}
+                      rows={5}
+                      required
+                    />
+                  </div>
+                  <div className="btn-row">
+                    <button type="submit" className="btn btn--primary">
+                      {editingLog ? 'Update Log' : 'Create Log'}
+                    </button>
+                    {editingLog && (
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={() => {
+                          setEditingLog(null);
+                          setNewLog({ week_number: '', activities: '', placement: '' });
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* ── Logs list ── */}
+            <div className="card">
+              <div className="card__header">
+                <h2 className="card__title">My Logs</h2>
+                <span className="card__count">{logs.length}</span>
+              </div>
+              <div className="card__body--list">
+                {logs.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No logs yet. Create your first weekly log.</p>
+                  </div>
+                ) : (
+                  logs.map((log) => (
+                    <div key={log.id} className="log-item">
+                      <div className="log-item__head">
+                        <span className="log-item__week">Week {log.week_number}</span>
+                        <StatusBadge status={log.status} />
+                        {log.total_score != null && (
+                          <span className="log-item__score">Score: {log.total_score}</span>
+                        )}
+                      </div>
+                      <p className="log-item__activities">{log.activities}</p>
+                      {log.feedback && (
+                        <p className="log-item__feedback">
+                          <strong>Feedback:</strong> {log.feedback}
+                        </p>
+                      )}
+                      {log.status === 'draft' && (
+                        <div className="btn-row btn-row--sm">
+                          <button
+                            className="btn btn--secondary btn--sm"
+                            onClick={() => {
+                              setEditingLog(log);
+                              setNewLog({
+                                week_number: log.week_number,
+                                activities: log.activities,
+                                placement: log.placement?.id ?? log.placement,
+                              });
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn btn--primary btn--sm"
+                            onClick={() => handleSubmitLog(log.id)}
+                          >
+                            Submit for Review
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  /* ── Supervisor ────────────────────────────────────────────────────────── */
+  if (user.role === 'workplace_supervisor' || user.role === 'academic_supervisor') {
+    const pendingLogs = supervisorLogs.filter((l) => l.status === 'submitted');
+    const reviewedLogs = supervisorLogs.filter((l) => l.status === 'reviewed');
+    const avgScore = (() => {
+      const evaluated = supervisorLogs.filter((l) => l.total_score != null);
+      if (evaluated.length === 0) return 'N/A';
+      return (evaluated.reduce((sum, l) => sum + l.total_score, 0) / evaluated.length).toFixed(2);
+    })();
+
+    return (
+      <div className="app-layout">
+        <ToastContainer />
+        <NavBar user={user} onLogout={() => logout(() => setSupervisorLogs([]))} />
+
+        <main className="page-content">
+          <div className="page-header">
+            <h1 className="page-title">Supervisor Dashboard</h1>
+            <p className="page-subtitle">Review and evaluate student internship logs</p>
+          </div>
+
+          <div className="stats-row">
+            <StatCard label="Total Logs" value={supervisorLogs.length} accent="primary" />
+            <StatCard label="Pending Review" value={pendingLogs.length} accent="warning" />
+            <StatCard label="Reviewed" value={reviewedLogs.length} accent="info" />
+            <StatCard
+              label="Approved"
+              value={supervisorLogs.filter((l) => l.status === 'approved').length}
+              accent="success"
+            />
+            <StatCard label="Avg Score" value={avgScore} accent="secondary" />
+          </div>
+
+          {/* ── Pending reviews ── */}
+          <div className="card">
+            <div className="card__header">
+              <h2 className="card__title">Pending Reviews</h2>
+              <span className={`card__count${pendingLogs.length > 0 ? ' card__count--warning' : ''}`}>
+                {pendingLogs.length}
+              </span>
+            </div>
+            <div className="card__body--list">
+              {pendingLogs.length === 0 ? (
+                <div className="empty-state">
+                  <p>No logs pending review — all caught up!</p>
+                </div>
+              ) : (
+                pendingLogs.map((log) => (
+                  <div key={log.id} className="log-item">
+                    <div className="log-item__head">
+                      <span className="log-item__week">Week {log.week_number}</span>
+                      <StatusBadge status={log.status} />
+                    </div>
+                    <p className="log-item__activities">{log.activities}</p>
+                    <div className="btn-row btn-row--sm">
+                      <button
+                        className="btn btn--secondary btn--sm"
+                        onClick={() => handleSupervisorAction(log.id, 'reviewed', '')}
+                      >
+                        Mark as Reviewed
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* ── Reviewed — awaiting evaluation / approval ── */}
+          <div className="card">
+            <div className="card__header">
+              <h2 className="card__title">Reviewed Logs</h2>
+              <span className="card__count">{reviewedLogs.length}</span>
+            </div>
+            <div className="card__body--list">
+              {reviewedLogs.length === 0 ? (
+                <div className="empty-state">
+                  <p>No reviewed logs awaiting evaluation.</p>
+                </div>
+              ) : (
+                reviewedLogs.map((log) => (
+                  <div key={log.id} className="log-item log-item--eval">
+                    <div className="log-item__head">
+                      <span className="log-item__week">Week {log.week_number}</span>
+                      <StatusBadge status={log.status} />
+                      {log.total_score != null && (
+                        <span className="log-item__score">Score: {log.total_score}</span>
+                      )}
+                    </div>
+                    <p className="log-item__activities">{log.activities}</p>
+
+                    {criteria.length > 0 && (
+                      <div className="eval-grid">
+                        {criteria.map((c) => (
+                          <div key={c.id} className="eval-row">
+                            <label className="eval-row__label">
+                              {c.name}
+                              <span className="eval-row__weight">
+                                ({(c.weight * 100).toFixed(0)}%)
+                              </span>
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className="field__input eval-row__input"
+                              placeholder="0–100"
+                              onChange={(e) =>
+                                setFeedback((prev) => ({
+                                  ...prev,
+                                  [`score_${log.id}_${c.id}`]: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        ))}
+                        <div>
+                          <button
+                            className="btn btn--secondary btn--sm"
+                            onClick={() => saveEvaluations(log.id)}
+                          >
+                            Save Scores
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="field" style={{ marginTop: 14 }}>
+                      <label className="field__label">Feedback</label>
+                      <textarea
+                        className="field__input field__input--textarea"
+                        placeholder="Optional for approval — required when requesting changes"
+                        value={feedback[log.id] || ''}
+                        onChange={(e) => setFeedback({ ...feedback, [log.id]: e.target.value })}
+                        rows={2}
+                        style={{ minHeight: 64 }}
+                      />
+                    </div>
+
+                    <div className="btn-row btn-row--sm">
+                      <button
+                        className="btn btn--success btn--sm"
+                        onClick={() =>
+                          handleSupervisorAction(log.id, 'approved', feedback[log.id] || '')
+                        }
+                      >
+                        Approve
+                      </button>
+                      <button
+                        className="btn btn--danger btn--sm"
+                        onClick={() =>
+                          handleSupervisorAction(log.id, 'draft', feedback[log.id] || '')
+                        }
+                      >
+                        Request Changes
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* ── All logs table ── */}
+          <div className="card">
+            <div className="card__header">
+              <h2 className="card__title">All Logs</h2>
+              <span className="card__count">{supervisorLogs.length}</span>
+            </div>
+            <div className="card__body" style={{ padding: 0, overflowX: 'auto' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Week</th>
+                    <th>Activities</th>
+                    <th>Status</th>
+                    <th>Score</th>
+                    <th>Feedback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {supervisorLogs.map((log) => (
+                    <tr key={log.id}>
+                      <td>{log.week_number}</td>
+                      <td className="td--truncate">{log.activities}</td>
+                      <td>
+                        <StatusBadge status={log.status} />
+                      </td>
+                      <td>{log.total_score != null ? log.total_score : '—'}</td>
+                      <td>{log.feedback || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  /* ── Admin ─────────────────────────────────────────────────────────────── */
+  if (user.role === 'admin') {
+    return (
+      <div className="app-layout">
+        <ToastContainer />
+        <NavBar user={user} onLogout={() => logout(() => { setAdminUsers([]); setAdminLogs([]); })} />
+
+        <main className="page-content">
+          <div className="page-header">
+            <h1 className="page-title">Admin Dashboard</h1>
+            <p className="page-subtitle">System-wide overview of users and logs</p>
+          </div>
+
+          <div className="stats-row">
+            <StatCard label="Total Users" value={adminUsers.length} accent="primary" />
+            <StatCard label="Total Logs" value={adminLogs.length} accent="secondary" />
+            <StatCard
+              label="Approved"
+              value={adminLogs.filter((l) => l.status === 'approved').length}
+              accent="success"
+            />
+            <StatCard
+              label="Pending"
+              value={adminLogs.filter((l) => l.status === 'submitted').length}
+              accent="warning"
+            />
+          </div>
+
+          <div className="card">
+            <div className="card__header">
+              <h2 className="card__title">All Users</h2>
+              <span className="card__count">{adminUsers.length}</span>
+            </div>
+            <div className="card__body" style={{ padding: 0, overflowX: 'auto' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Email</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adminUsers.map((u) => (
+                    <tr key={u.id}>
+                      <td>{u.id}</td>
+                      <td>{u.username}</td>
+                      <td>
+                        <span className={`role-pill role-pill--${u.role}`}>
+                          {ROLE_LABELS[u.role] ?? u.role}
+                        </span>
+                      </td>
+                      <td>{u.email || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card__header">
+              <h2 className="card__title">All Logs</h2>
+              <span className="card__count">{adminLogs.length}</span>
+            </div>
+            <div className="card__body" style={{ padding: 0, overflowX: 'auto' }}>
+              {adminLogs.length === 0 ? (
+                <div className="empty-state">
+                  <p>No logs yet.</p>
+                </div>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Student</th>
+                      <th>Week</th>
+                      <th>Activities</th>
+                      <th>Status</th>
+                      <th>Score</th>
+                      <th>Feedback</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminLogs.map((log) => (
+                      <tr key={log.id}>
+                        <td>{log.id}</td>
+                        <td>{log.student}</td>
+                        <td>{log.week_number}</td>
+                        <td className="td--truncate">{log.activities}</td>
+                        <td>
+                          <StatusBadge status={log.status} />
+                        </td>
+                        <td>{log.total_score != null ? log.total_score : '—'}</td>
+                        <td>{log.feedback || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  /* ── Unknown role ──────────────────────────────────────────────────────── */
   return (
-    <div style={{ padding: '20px' }}>
-      <ToastContainer />
-      <h1>Internship Login</h1>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div>
-          <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
+    <div className="app-layout">
+      <main className="page-content">
+        <div className="card">
+          <div className="card__body">
+            <div className="alert alert--danger">
+              Unknown role: <strong>{user.role}</strong>. Please contact support.
+            </div>
+            <button className="btn btn--ghost" onClick={() => logout(() => {})}>
+              Sign out
+            </button>
+          </div>
         </div>
-        <br />
-        <div>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-        <br />
-        <button type="submit">Login</button>
-      </form>
+      </main>
     </div>
   );
 }
