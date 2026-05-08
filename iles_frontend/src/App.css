@@ -596,6 +596,81 @@
   letter-spacing: 0.02em;
 }
 
+/* ── Two-column form grid (placement form) ─────────────────────────────────── */
+.two-col-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
+@media (max-width: 600px) {
+  .two-col-form { grid-template-columns: 1fr; }
+}
+
+/* ── Placement list item ───────────────────────────────────────────────────── */
+.placement-item {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.placement-item:last-child { border-bottom: none; }
+
+.placement-item__name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+
+.placement-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: var(--text-2);
+}
+
+.placement-item__sup {
+  font-size: 0.8rem;
+  background: var(--success-bg);
+  color: var(--success);
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.placement-item__sup--none {
+  background: var(--neutral-bg);
+  color: var(--neutral);
+}
+
+/* ── Log item extras ───────────────────────────────────────────────────────── */
+.log-item__placement {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.log-item__student {
+  font-size: 0.78rem;
+  background: var(--info-bg);
+  color: var(--info);
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+/* ── Form hint text ────────────────────────────────────────────────────────── */
+.field__hint {
+  font-weight: 400;
+  color: var(--text-3);
+  font-size: 0.78rem;
+  margin-left: 4px;
+}
+
 /* ── Divider ───────────────────────────────────────────────────────────────── */
 .divider {
   border: none;
