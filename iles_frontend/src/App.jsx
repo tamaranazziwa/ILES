@@ -73,10 +73,29 @@ function NavBar({ user, onLogout }) {
   );
 }
 
+const SIGNUP_ROLES = [
+  { value: 'student',               label: 'Student' },
+  { value: 'workplace_supervisor',  label: 'Workplace Supervisor' },
+  { value: 'academic_supervisor',   label: 'Academic Supervisor' },
+];
+
 function App() {
+  // ── Auth mode ──────────────────────────────────────────────────────────────
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
+
+  // Login form
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+
+  // Register form
+  const [regForm, setRegForm] = useState({
+    first_name: '', last_name: '', username: '',
+    email: '', password: '', password2: '',
+    role: 'student',
+  });
+  const [regError, setRegError] = useState('');
+
   const [user, setUser] = useState(null);
 
   // Student state
@@ -295,7 +314,28 @@ function App() {
       setLoginError(err.response?.data?.detail || 'Invalid username or password.');
       return;
     }
-    const { access, refresh } = response.data;
+    storeTokensAndLogin(response.data);
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setRegError('');
+    if (regForm.password !== regForm.password2) {
+      setRegError('Passwords do not match.');
+      return;
+    }
+    let response;
+    try {
+      response = await api.post('/register/', regForm);
+    } catch (err) {
+      setRegError(apiError(err));
+      return;
+    }
+    toast.success('Account created! Welcome to ILES.');
+    storeTokensAndLogin(response.data);
+  };
+
+  const storeTokensAndLogin = ({ access, refresh }) => {
     localStorage.setItem('access_token', access);
     localStorage.setItem('refresh_token', refresh);
     const payload = parseJwt(access);
@@ -307,54 +347,188 @@ function App() {
     else if (payload.role === 'admin') fetchAdminData();
   };
 
-  // ── Login ──────────────────────────────────────────────────────────────────
+  // ── Auth (login / register) ────────────────────────────────────────────────
   if (!user) {
+    const isLogin = authMode === 'login';
+
     return (
       <div className="login-page">
         <ToastContainer />
         <div className="login-card">
           <div className="login-card__logo">ILES</div>
-          <h1 className="login-card__title">Welcome back</h1>
-          <p className="login-card__subtitle">Sign in to your internship logbook</p>
 
-          {loginError && (
-            <div className="alert alert--danger">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0, marginTop: 1 }}>
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-              </svg>
-              {loginError}
-            </div>
+          {isLogin ? (
+            <>
+              <h1 className="login-card__title">Welcome back</h1>
+              <p className="login-card__subtitle">Sign in to your internship logbook</p>
+
+              {loginError && (
+                <div className="alert alert--danger">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0, marginTop: 1 }}>
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                  </svg>
+                  {loginError}
+                </div>
+              )}
+
+              <form onSubmit={handleLogin} className="login-form">
+                <div className="field">
+                  <label className="field__label">Username</label>
+                  <input
+                    type="text"
+                    className="field__input"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    autoComplete="username"
+                  />
+                </div>
+                <div className="field">
+                  <label className="field__label">Password</label>
+                  <input
+                    type="password"
+                    className="field__input"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
+                <button type="submit" className="btn btn--primary btn--full" style={{ marginTop: 8 }}>
+                  Sign In
+                </button>
+              </form>
+
+              <p className="auth-switch">
+                Don&apos;t have an account?{' '}
+                <button className="auth-switch__link" onClick={() => { setAuthMode('register'); setLoginError(''); }}>
+                  Create one
+                </button>
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="login-card__title">Create account</h1>
+              <p className="login-card__subtitle">Join ILES to log your internship</p>
+
+              {regError && (
+                <div className="alert alert--danger">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0, marginTop: 1 }}>
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                  </svg>
+                  {regError}
+                </div>
+              )}
+
+              <form onSubmit={handleRegister} className="login-form">
+                {/* Role picker */}
+                <div className="field">
+                  <label className="field__label">I am a…</label>
+                  <div className="role-selector">
+                    {SIGNUP_ROLES.map((r) => (
+                      <button
+                        key={r.value}
+                        type="button"
+                        className={`role-option${regForm.role === r.value ? ' role-option--active' : ''}`}
+                        onClick={() => setRegForm({ ...regForm, role: r.value })}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="two-col-form">
+                  <div className="field">
+                    <label className="field__label">First Name</label>
+                    <input
+                      type="text"
+                      className="field__input"
+                      placeholder="First name"
+                      value={regForm.first_name}
+                      onChange={(e) => setRegForm({ ...regForm, first_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="field">
+                    <label className="field__label">Last Name</label>
+                    <input
+                      type="text"
+                      className="field__input"
+                      placeholder="Last name"
+                      value={regForm.last_name}
+                      onChange={(e) => setRegForm({ ...regForm, last_name: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label className="field__label">Username</label>
+                  <input
+                    type="text"
+                    className="field__input"
+                    placeholder="Choose a username"
+                    value={regForm.username}
+                    onChange={(e) => setRegForm({ ...regForm, username: e.target.value })}
+                    required
+                    autoComplete="username"
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field__label">Email</label>
+                  <input
+                    type="email"
+                    className="field__input"
+                    placeholder="your@email.com"
+                    value={regForm.email}
+                    onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+
+                <div className="two-col-form">
+                  <div className="field">
+                    <label className="field__label">Password</label>
+                    <input
+                      type="password"
+                      className="field__input"
+                      placeholder="Min. 8 characters"
+                      value={regForm.password}
+                      onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
+                      required
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  <div className="field">
+                    <label className="field__label">Confirm Password</label>
+                    <input
+                      type="password"
+                      className="field__input"
+                      placeholder="Repeat password"
+                      value={regForm.password2}
+                      onChange={(e) => setRegForm({ ...regForm, password2: e.target.value })}
+                      required
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="btn btn--primary btn--full" style={{ marginTop: 8 }}>
+                  Create Account
+                </button>
+              </form>
+
+              <p className="auth-switch">
+                Already have an account?{' '}
+                <button className="auth-switch__link" onClick={() => { setAuthMode('login'); setRegError(''); }}>
+                  Sign in
+                </button>
+              </p>
+            </>
           )}
-
-          <form onSubmit={handleLogin} className="login-form">
-            <div className="field">
-              <label className="field__label">Username</label>
-              <input
-                type="text"
-                className="field__input"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                autoComplete="username"
-              />
-            </div>
-            <div className="field">
-              <label className="field__label">Password</label>
-              <input
-                type="password"
-                className="field__input"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-              />
-            </div>
-            <button type="submit" className="btn btn--primary btn--full" style={{ marginTop: 8 }}>
-              Sign In
-            </button>
-          </form>
         </div>
         <p className="login-page__footer">Internship Logbook &amp; Evaluation System</p>
       </div>
