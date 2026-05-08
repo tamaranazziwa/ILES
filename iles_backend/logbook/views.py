@@ -15,8 +15,10 @@ class WeeklyLogViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.role == 'student':
             return WeeklyLog.objects.filter(student=user)  # students see their own logs
-        elif user.role in ['workplace_supervisor', 'academic_supervisor']:
-            return WeeklyLog.objects.filter(placement__supervisor=user)  # supervisors see logs of their supervisees
+        elif user.role == 'workplace_supervisor':
+            return WeeklyLog.objects.filter(placement__supervisor=user)
+        elif user.role == 'academic_supervisor':
+            return WeeklyLog.objects.filter(placement__academic_supervisor=user)
         elif user.role == 'admin':
             return WeeklyLog.objects.all()
         return WeeklyLog.objects.none()

@@ -734,3 +734,345 @@
   border-top: 1px solid var(--border);
   margin: 8px 0;
 }
+
+/* ── Score display ─────────────────────────────────────────────────────────── */
+.score-display {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.score-display__num {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.score-display__num--good { color: var(--success); }
+.score-display__num--avg  { color: var(--warning); }
+.score-display__num--low  { color: var(--danger); }
+
+.score-bar {
+  height: 5px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.score-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s;
+}
+
+.score-na {
+  font-size: 0.78rem;
+  color: var(--text-3);
+  font-style: italic;
+}
+
+/* ── Eval sheet ────────────────────────────────────────────────────────────── */
+.eval-sheet {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin: 12px 0;
+}
+
+.eval-sheet__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.eval-sheet__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.eval-sheet__label {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.eval-sheet__weight {
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+
+.eval-sheet__scored {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eval-sheet__existing {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--success);
+}
+
+.eval-sheet__locked {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--success-bg);
+  color: var(--success);
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.eval-sheet__input {
+  width: 90px !important;
+  flex: none;
+  text-align: center;
+  padding: 7px 10px !important;
+}
+
+/* ── Student card (supervisor accordion) ───────────────────────────────────── */
+.student-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 16px;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+
+.student-card:hover { box-shadow: var(--shadow); }
+
+.student-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--surface);
+  transition: background 0.1s;
+}
+
+.student-card__header:hover { background: var(--bg); }
+
+.student-card__identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.student-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.student-card__name {
+  font-size: 0.975rem;
+  font-weight: 700;
+  color: var(--text-1);
+  margin: 0 0 2px;
+}
+
+.student-card__sub {
+  font-size: 0.8rem;
+  color: var(--text-2);
+  margin: 0;
+}
+
+.student-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.student-card__chevron {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  margin-left: 4px;
+}
+
+.student-card__body {
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Info grid ─────────────────────────────────────────────────────────────── */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px 16px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin: 14px 0 8px;
+  border: 1px solid var(--border);
+}
+
+.info-grid--compact {
+  padding: 10px 14px;
+  margin: 10px 0 6px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-item__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+.info-item__value {
+  font-size: 0.875rem;
+  color: var(--text-1);
+  font-weight: 500;
+}
+
+.info-item__link {
+  font-size: 0.875rem;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.info-item__link:hover { text-decoration: underline; }
+
+/* ── Sub-section (inside student-card body) ────────────────────────────────── */
+.sub-section {
+  margin-top: 18px;
+}
+
+.sub-section__title {
+  font-size: 0.825rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-2);
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sub-section__desc {
+  font-size: 0.82rem;
+  color: var(--text-2);
+  margin: -6px 0 10px;
+}
+
+/* ── Placement card (student's placement display) ──────────────────────────── */
+.placement-card {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.placement-card:last-child { border-bottom: none; }
+
+.placement-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.placement-card__company {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-1);
+  margin: 0 0 3px;
+}
+
+.placement-card__dates {
+  font-size: 0.8rem;
+  color: var(--text-2);
+  margin: 0;
+}
+
+/* ── Placement form ────────────────────────────────────────────────────────── */
+.placement-form-body {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.form-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-1);
+  margin: 0 0 18px;
+}
+
+.form-section {
+  margin-bottom: 20px;
+}
+
+.form-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  margin: 0 0 10px;
+}
+
+/* ── Three-column form grid ────────────────────────────────────────────────── */
+.three-col-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0 16px;
+}
+
+@media (max-width: 760px) {
+  .three-col-form { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 520px) {
+  .three-col-form { grid-template-columns: 1fr; }
+}
+
+.field--span2 { grid-column: span 2; }
+.field--span3 { grid-column: span 3; }
+
+@media (max-width: 760px) {
+  .field--span2 { grid-column: span 1; }
+  .field--span3 { grid-column: span 2; }
+}
+
+@media (max-width: 520px) {
+  .field--span2,
+  .field--span3 { grid-column: span 1; }
+}
+
+/* ── Compact log item ──────────────────────────────────────────────────────── */
+.log-item--compact {
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+}
+
+.log-item--compact:last-child { margin-bottom: 0; }
