@@ -26,4 +26,5 @@ urlpatterns = [
     path('', root_redirect, name='root-redirect'),          # Handles http://127.0.0.1:8000/
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),                     # Correct: router object (NO quotes)
+    path('api/auth/', include('Students_login.urls')),
 ]

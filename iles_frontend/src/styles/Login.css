@@ -1,0 +1,127 @@
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #5b7dfd 0%, #1b355d 100%);
+}
+
+.login-panel {
+  width: 100%;
+  max-width: 1200px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.login-role-panel,
+.login-form-panel {
+  background: rgba(33, 148, 50, 0);
+  border-radius: 50px;
+  padding: 32px;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgb(65, 116, 155);
+}
+
+.login-role-panel h1,
+.login-form-panel h2 {
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.login-role-panel p,
+.login-form-subtitle {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 24px;
+}
+
+.role-cards {
+  display: grid;
+  gap: 16px;
+}
+
+.role-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px;
+  border-radius: 18px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+}
+
+.role-card:hover,
+.role-card.active {
+  transform: translateX(6px);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.role-card strong {
+  font-size: 18px;
+}
+
+.role-card span {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.login-form {
+  display: grid;
+  gap: 18px;
+}
+
+label {
+  color: white;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-size: 15px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #72b5ff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.login-button {
+  padding: 14px 20px;
+  border-radius: 14px;
+  border: none;
+  background: #ffffff;
+  color: #1b355d;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+
+.login-button:hover {
+  background: #f4f7ff;
+}
+
+.form-error {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 132, 132, 0.15);
+  color: #ffdddd;
+  border: 1px solid rgba(255, 132, 132, 0.4);
+}
+
+@media (max-width: 920px) {
+  .login-panel {
+    grid-template-columns: 1fr;
+  }
+}
