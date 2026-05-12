@@ -1,17 +1,34 @@
-from django.db import models  # module with all the known field types (CharField, DateField, ForeignKey)
-from django.conf import settings  # to reference the custom user model
+from django.db import models
+from django.conf import settings
 
-class InternshipPlacement(models.Model):  # inherits from models.Model, the base class for every Django model
-    # ForeignKey creates a many-to-one relationship; on_delete=models.CASCADE deletes placement if student is deleted
-    # related_name lets you go backward from user to placements (e.g., user.placements.all())
-    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='placements')
-    # supervisor is also a user, but with a different role; related_name is different to avoid conflict
-    supervisor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='placement_supervisor', null=True)
+
+class InternshipPlacement(models.Model):
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='placements'
+    )
+    # Workplace supervisor
+    supervisor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='workplace_placements', null=True, blank=True
+    )
+    # Academic supervisor — separate role, separate FK
+    academic_supervisor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='academic_placements', null=True, blank=True
+    )
     company_name = models.CharField(max_length=200)
-    start_date = models.DateField()  # stores a date (year, month, day)
+    start_date = models.DateField()
     end_date = models.DateField()
-    created_at = models.DateTimeField(auto_now_add=True)  # stores date and time, automatically set when created
+
+    # Student school details
+    school_name = models.CharField(max_length=200, blank=True, default='')
+    course = models.CharField(max_length=200, blank=True, default='')
+    registration_number = models.CharField(max_length=100, blank=True, default='')
+    # Shareable link to placement approval letter (Google Drive, OneDrive, etc.)
+    placement_letter_url = models.CharField(max_length=500, blank=True, default='')
+
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        sup_name = self.supervisor.username if self.supervisor else 'None'
-        return f"{self.student.username} at {self.company_name}, Supervisor- {sup_name}"
+        sup = self.supervisor.username if self.supervisor else 'None'
+        return f"{self.student.username} at {self.company_name} (work supervisor: {sup})"

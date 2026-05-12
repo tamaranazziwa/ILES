@@ -16,6 +16,6 @@ urlpatterns = [
     path('debug/', lambda request: JsonResponse({
         'ALLOWED_HOSTS': settings.ALLOWED_HOSTS,
         'DEBUG': settings.DEBUG,
-        'CORS_ALLOWED_ORIGINS': settings.CORS_ALLOWED_ORIGINS,
+        'CORS_ALLOW_ALL_ORIGINS': getattr(settings, 'CORS_ALLOW_ALL_ORIGINS', False),
     })),
 ]

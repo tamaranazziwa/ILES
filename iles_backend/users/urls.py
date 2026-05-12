@@ -1,10 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UserViewSet
+from .views import UserViewSet, RegisterView
 
-router = DefaultRouter()  # creates a router object that automatically generates URLs for viewsets
-router.register(r'users', UserViewSet)  # registers viewset at the /users/ path (r for raw string)
+router = DefaultRouter()
+router.register(r'users', UserViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),  # router generates all the URL patterns automatically
+    path('register/', RegisterView.as_view(), name='register'),
+    path('', include(router.urls)),
 ]

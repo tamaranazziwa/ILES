@@ -15,8 +15,10 @@ class WeeklyLogViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.role == 'student':
             return WeeklyLog.objects.filter(student=user)  # students see their own logs
-        elif user.role in ['workplace_supervisor', 'academic_supervisor']:
-            return WeeklyLog.objects.filter(placement__supervisor=user)  # supervisors see logs of their supervisees
+        elif user.role == 'workplace_supervisor':
+            return WeeklyLog.objects.filter(placement__supervisor=user)
+        elif user.role == 'academic_supervisor':
+            return WeeklyLog.objects.filter(placement__academic_supervisor=user)
         elif user.role == 'admin':
             return WeeklyLog.objects.all()
         return WeeklyLog.objects.none()
@@ -52,13 +54,17 @@ class WeeklyLogViewSet(viewsets.ModelViewSet):
         if user.role == 'student':
             if instance.student != user:
                 raise PermissionDenied('You can only update your own logs.')
-            if instance.status != 'draft' or new_status != 'submitted':
-                raise ValidationError('Students can only submit a draft log.')
+            if instance.status != 'draft':
+                raise ValidationError('You can only edit or submit a draft log.')
+            if new_status not in ['draft', 'submitted']:
+                raise ValidationError('Invalid status.')
             # Students are not allowed to set feedback
             if 'feedback' in serializer.validated_data:
                 del serializer.validated_data['feedback']
-            # save timestamp when student submits log
-            serializer.save(submitted_at=timezone.now())
+            if new_status == 'submitted':
+                serializer.save(submitted_at=timezone.now())
+            else:
+                serializer.save()
             if new_status == 'submitted':
                 supervisor_email = instance.placement.supervisor.email if instance.placement.supervisor else None
                 if supervisor_email:
